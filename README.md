@@ -176,7 +176,7 @@ Before CS2 came out, people were using [hazedumper](https://github.com/frk1/haze
 - Get back to game, type in console `-jump` and hit `Next scan` once again.
 > You can run around the map for a little bit **without** using `+jump` or `-jump` and then hit `Next scan`, but with `Unchanged value` setting. It'll help throw off a lot of wrong addresses
 
-<video src="img/1.mp4" width="1280" height="720" controls></video>
+#### Click [here](https://youtu.be/jl22i4RlEZs) to see video example
 
 At the end, we'll be left with a couple of addresses that actually represent jumping action. Normally, "forcing a jump" value would be `65537` (it just doesn't change throughout versions of CS)
 > Try setting different values to these addresses to find out if they can be used for forcing jumps. Some of these addresses may represent the state or some kind of a flag to `+jump` state, which is pretty much useless
@@ -187,7 +187,7 @@ In my case, offset to `dwForceJump` was `client.dll + 0x186CD60`.
 ## Writing bhop hack
 Skipping the boring getting process' handle and opening it for future memory modifying, writing the cheat itself isn't hard. The logic of cheat goes something like this:\
 ![](img/5.png)\
-Now, all we have to do is get these values and create some `if` statements to check for everything. Once again, we'll skip getting process' handle and `client.dll` handle, well-documented code can be found in [main.go](main.go) file:\
+Now, all we have to do is get these values and create some `if` statements to check for everything. Once again, we'll skip getting process' handle and `client.dll` handle, well-documented code can be found in [main.go](https://github.com/s1nhx/cs2-go-bhop/blob/main/main.go) file:
 ```
 off_CSPlayerPawn := client + 0x1874050 // dwLocalPlayerPawn
 force_jump_off := client + 0x186CD60   // dwForceJump
@@ -215,7 +215,7 @@ for {
 		}
 ```
 With [this](img/5.png) logic implemented, our cheat is done.
-> Full code can be viewed in [main.go](main.go) file.
+> Full code can be viewed in [main.go](https://github.com/s1nhx/cs2-go-bhop/blob/main/main.go) file.
 
 ## Trying out bhop hack
 Launch CS2 from Steam **with `-insecure` launch option**, load to any map, build `.exe` file and run it.
@@ -224,9 +224,7 @@ Launch CS2 from Steam **with `-insecure` launch option**, load to any map, build
 If everything did load properly, you will see `Ready to hop!` message in console and no error floodings. Get back to game, hold spacebar and enjoy **almost** perfect bunnyhop on vanilla CS2 server.
 > **Almost** perfect mainly because of Valve's unique tickrate system called sub-tick. Yuck
 
-<video src="img/2.mp4" width="1280" height="720" controls></video>
-
-> [Admin, he's doing it sideways!!!](https://youtu.be/SNvDUO42Hys?t=35)
+#### Click [here](https://youtu.be/tx9O5iss2TE) to see video example
 
 This is pretty much it. I didn't cover some functions, but they more or less well-documented in code or on [official Microsoft website](https://learn.microsoft.com/en-us/windows/win32/api/)
 
