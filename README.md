@@ -168,7 +168,10 @@ This is also provable using, for example, Python:\
 ![](img/4.png)
 
 ### Force jump
-Before CS2 came out, people were using [hazedumper](https://github.com/frk1/hazedumper) to dump offsets for CS:GO and it worked just fine, also having `dwForceJump` offset search. Nowadays, we have [cs2-dumper](https://github.com/a2x/cs2-dumper/) that also does a great job in finding offsets, but doesn't support `dwForceJump` offset search. Though we still can find it using CE's scanning feature:
+Before CS2 came out, people were using [hazedumper](https://github.com/frk1/hazedumper) to dump offsets for CS:GO and it worked just fine, also having `dwForceJump` offset search. ~Nowadays, we have [cs2-dumper](https://github.com/a2x/cs2-dumper/) that also does a great job in finding offsets, but doesn't support `dwForceJump` offset search.~
+> ❗ EDIT: [No, I wasn't right.](https://github.com/a2x/cs2-dumper/blob/main/output/buttons.hpp#L16) This method is still working though!
+
+Though we still can find it using CE's scanning feature:
 - Open `cs2.exe` in CE;
 - Scan for an `Unknown initial value` with the `Value type` of 4 bytes;
 > Optional: choose `client.dll` in `Memory Scan Options`. Won't hurt (probably) and will help CE parse addresses **a lot**;
