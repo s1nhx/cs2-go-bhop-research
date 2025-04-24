@@ -5,7 +5,7 @@
 ### Implementing `WriteProcessMemory()` call
 Almost every cheat requires at least read access to target's memory so it can analyse it and do something. The problems began to appear at the first glance on the language: there are no native support for WinAPI functions. However, there are some wrappers like [w32](https://pkg.go.dev/github.com/allendang/w32) or [windows](https://pkg.go.dev/golang.org/x/sys/windows).\
 Let's see how does `WriteProcessMemory()` looks like in [w32](https://pkg.go.dev/github.com/allendang/w32):
-```
+```go
 func WriteProcessMemory(hProcess HANDLE, lpBaseAddress, lpBuffer, nSize uintptr) (int, bool) {
 	var nBytesWritten int
 	ret, _, _ := procWriteProcessMemory.Call(
@@ -20,7 +20,7 @@ func WriteProcessMemory(hProcess HANDLE, lpBaseAddress, lpBuffer, nSize uintptr)
 }
 ```
 We see the same things as we can see in native `WriteProcessMemory()` function. Same set of arguments, same return value:
-```
+```cpp
 BOOL WriteProcessMemory(
   [in]  HANDLE  hProcess,
   [in]  LPVOID  lpBaseAddress,
@@ -30,7 +30,7 @@ BOOL WriteProcessMemory(
 );
 ```
 To avoid getting dependencies into project, we can just copy and paste this function to our project:
-```
+```go
 func wpm(process uintptr, baseAddress uintptr, buffer *byte, size uintptr, numberOfBytesWritten *uintptr) (err error) {
 	ret, _, err := procWriteProcessMemory.Call(uintptr(process),
 		uintptr(baseAddress),
@@ -50,13 +50,13 @@ func wpm(process uintptr, baseAddress uintptr, buffer *byte, size uintptr, numbe
 ### Making a wrapper for `wpm()`
 Right now, calling `wpm()` would be a pain in the back: to pass C-like `*byte` you will have to create buffer, then get first item and a pointer to it, which is just too much stuff going on. An easier way would be a wrapper function. In my case, I've decided to take some inspiration from [lemonhook](https://gitlab.com/sc6ut/lemonhook/-/blob/rework/src/mem.cpp) and rewrite functions from there on Go.\
 Lemonhook uses two functions to write memory: `safe_set()` and `safe_copy()`. They also include `unprot()` which is just a `VirtualProtect()` call, we'll implement it too:
-```
+```go
 func unprot(handle uintptr, dest uintptr, size int) (old_protect uint32) {
 	virtprot(handle, dest, size, PAGE_EXECUTE_READWRITE, &old_protect)
 	return old_protect
 }
 ```
-```
+```go
 func prot(handle uintptr, dest uintptr, size int, old_protect uint32) {
 	var dummy uint32
 	virtprot(handle, dest, size, old_protect, &dummy)
@@ -66,7 +66,7 @@ func prot(handle uintptr, dest uintptr, size int, old_protect uint32) {
 > Why no error return? `VirtualProtectEx()` always never fails, so there's no point of doing that.
 
 Now, `unprot()` will change the protection to preferable state and `prot()` will turn the protection back on after it gets out of scope. For that, we will use `defer` keyword:
-```
+```go
 func safe_copy(handle uintptr, dest uintptr, data []byte, size uint) (err error) {
 	// Unprotect memory to avoid access violation
 	old_protect := unprot(handle, uintptr(dest), int(size))
@@ -79,7 +79,7 @@ And **there we go!** Wrapper for `wpm()` is done. `safe_set()` works pretty much
 
 ### `safe_copy()` usage
 We still have to somehow put some integer value into byte array in byte representation **and** little-endian order. Of course, we can use `binary.LittleEndian.PutUint16()` or `.PutUint32()` or `.PutUint64()`, but now we can not have an array of size, for example, three bytes with some value above two bytes cap, but below three bytes (basically `2^16 < value < 2^24-1`). So, we have to find a workaround:
-```
+```go
 func put_bytes(value uint64) []byte {
 	if value == 0 {
 		return []byte{0}
@@ -103,13 +103,13 @@ func put_bytes(value uint64) []byte {
 }
 ```
 `put_bytes()` easily handles any value below 64-bit cap and puts it into a byte array with an appropriate size. Now, we can call `safe_copy()` without worrying about putting our value into byte array by hand:
-```
+```go
 safe_copy(some_handle, some_address, put_bytes(0x12345), some_size)
 ```
 
 ### What about reading memory?
 The process is pretty much the same. Write `rpm()` based off w32 library:
-```
+```go
 func rpm(process uintptr, baseAddress uintptr, buffer *byte, size uintptr) (err error) {
 	var numberOfBytesRead *uintptr
 
@@ -126,7 +126,7 @@ func rpm(process uintptr, baseAddress uintptr, buffer *byte, size uintptr) (err 
 }
 ```
 Make a `read()` function based off `safe_copy()`:
-```
+```go
 func read(handle uintptr, dest uintptr, size uint) (data []byte, err error) {
 	// Unprotect memory to avoid access violation
 	old_protect := unprot(handle, uintptr(dest), int(size))
@@ -191,7 +191,7 @@ In my case, offset to `dwForceJump` was `client.dll + 0x186CD60`.
 Skipping the boring getting process' handle and opening it for future memory modifying, writing the cheat itself isn't hard. The logic of cheat goes something like this:\
 ![](img/5.png)\
 Now, all we have to do is get these values and create some `if` statements to check for everything. Once again, we'll skip getting process' handle and `client.dll` handle, well-documented code can be found in [main.go](https://github.com/s1nhx/cs2-go-bhop/blob/main/main.go) file:
-```
+```go
 off_CSPlayerPawn := client + 0x1874050 // dwLocalPlayerPawn
 force_jump_off := client + 0x186CD60   // dwForceJump
 for {
@@ -216,6 +216,7 @@ for {
 			// Not forcing a jump (-jump)
 			safe_copy(hProcess, uintptr(force_jump_off), put_bytes(0x1000100), 4)
 		}
+}
 ```
 With [this](img/5.png) logic implemented, our cheat is done.
 > Full code can be viewed in [main.go](https://github.com/s1nhx/cs2-go-bhop/blob/main/main.go) file.
